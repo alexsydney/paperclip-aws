@@ -19,22 +19,22 @@ module Paperclip
         base.instance_eval do
 
                    
-          @s3_credentials = parse_credentials(@options.s3_credentials)
-          @s3_permissions = set_permissions(@options.s3_permissions)
+          @s3_credentials = parse_credentials(@options[:s3_credentials])
+          @s3_permissions = set_permissions(@options[:s3_permissions])
           
-          @s3_protocol    = @options.s3_protocol    ||
+          @s3_protocol    = @options[:s3_protocol]    ||
             Proc.new do |style, attachment|
               permission  = (@s3_permissions[style.to_sym] || @s3_permissions[:default])
               permission  = permission.call(attachment, style) if permission.is_a?(Proc)
               (permission == :public_read) ? 'http' : 'https'
             end
           
-          @s3_headers     = @options.s3_headers     || {}
+          @s3_headers     = @options[:s3_headers]     || {}
           
-          @s3_bucket      = @options.bucket
+          @s3_bucket      = @options[:bucket]
           @s3_bucket = @s3_bucket.call(self) if @s3_bucket.is_a?(Proc) 
           
-          @s3_options     = @options.s3_options     || {}
+          @s3_options     = @options[:s3_options]     || {}
           # setup Amazon Server Side encryption
           @s3_options.reverse_merge!({
             :sse => false,
@@ -44,7 +44,7 @@ module Paperclip
           
           @s3_endpoint      = @s3_credentials[:endpoint] || 's3.amazonaws.com'
                     
-          @s3_host_alias    = @options.s3_host_alias
+          @s3_host_alias    = @options[:s3_host_alias]
           @s3_host_alias    = @s3_host_alias.call(self) if @s3_host_alias.is_a?(Proc)
                     
           @s3 = AWS::S3.new(
@@ -188,3 +188,10 @@ module Paperclip
     end
   end
 end
+
+# Compatibility with paperclip ~> 2.4.0
+Paperclip::Options.class_eval do
+  def [](key)
+    method_missing(key)
+  end
+end if defined?(Paperclip::Options)
